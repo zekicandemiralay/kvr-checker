@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """
 KVR Munich Emergency Appointment Checker
-Polls every CHECK_INTERVAL seconds and emails when a slot opens.
+Polls every CHECK_INTERVAL seconds and notifies via email and/or Telegram.
 
 Usage:
-    1. cp .env.example .env   # then fill in your email credentials
+    1. cp .env.example .env   # fill in your credentials
     2. pip install -r requirements.txt
     3. python main.py
 """
@@ -13,7 +13,6 @@ import os
 import sys
 import time
 import logging
-from datetime import datetime
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -41,11 +40,22 @@ def main() -> None:
         sys.exit(1)
     load_dotenv(env_path)
 
-    # Validate required env vars
-    for var in ("EMAIL_FROM", "EMAIL_TO", "EMAIL_PASSWORD"):
-        if not os.environ.get(var):
-            log.error("Missing required env var: %s", var)
-            sys.exit(1)
+    # Require at least one notification channel
+    has_email    = notifier.email_configured()
+    has_telegram = notifier.telegram_configured()
+
+    if not has_email and not has_telegram:
+        log.error(
+            "No notification channel configured. "
+            "Set email vars (EMAIL_FROM / EMAIL_TO / EMAIL_PASSWORD) "
+            "and/or Telegram vars (TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID) in .env"
+        )
+        sys.exit(1)
+
+    channels = []
+    if has_email:    channels.append("email")
+    if has_telegram: channels.append("telegram")
+    log.info("Notifiers active: %s", ", ".join(channels))
 
     interval = int(os.environ.get("CHECK_INTERVAL", "60"))
     log.info("KVR checker started — polling every %d seconds", interval)
@@ -61,11 +71,11 @@ def main() -> None:
 
             if available:
                 log.warning("*** APPOINTMENT(S) FOUND: %s ***", dates)
-                try:
-                    notifier.notify_appointment_found(dates)
-                    log.info("Email notification sent.")
-                except Exception as mail_err:
-                    log.error("Failed to send email: %s", mail_err)
+                sent = notifier.notify_appointment_found(dates)
+                if sent:
+                    log.info("Notifications sent via: %s", ", ".join(sent))
+                else:
+                    log.error("All notification channels failed!")
             else:
                 log.info("No appointments available.")
 
