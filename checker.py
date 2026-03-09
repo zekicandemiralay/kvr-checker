@@ -58,13 +58,7 @@ def check_appointments(captcha_token: str) -> tuple[bool, list]:
 
     resp.raise_for_status()
 
-    data = resp.json()
-    # The API returns a list of available date strings, e.g. ["2026-03-10", ...]
-    if isinstance(data, list):
-        dates = data
-    elif isinstance(data, dict):
-        dates = data.get("dates") or data.get("availableDays") or [str(data)]
-    else:
-        dates = [str(data)]
-
-    return bool(dates), dates
+    # HTTP 200 = appointments exist. No need to parse the body —
+    # the notification includes the direct booking link so the user
+    # can see the exact dates and times on the website immediately.
+    return True, []
