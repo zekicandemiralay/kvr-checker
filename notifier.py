@@ -68,6 +68,30 @@ def telegram_configured() -> bool:
 # Combined alert
 # ---------------------------------------------------------------------------
 
+def notify_startup(interval: int) -> list[str]:
+    """Send a startup confirmation so you know the checker is live."""
+    body = (
+        "KVR Checker is now running!\n\n"
+        f"Checking every {interval} seconds.\n"
+        "You will be notified here the moment an appointment opens.\n\n"
+        f"Booking URL: {BOOKING_URL}"
+    )
+    sent = []
+    if email_configured():
+        try:
+            send_email("✅ KVR Checker started", body)
+            sent.append("email")
+        except Exception as e:
+            print(f"[notifier] Startup email failed: {e}")
+    if telegram_configured():
+        try:
+            send_telegram(f"✅ KVR Checker started!\n\nChecking every {interval}s. I'll message you the moment a slot opens.")
+            sent.append("telegram")
+        except Exception as e:
+            print(f"[notifier] Startup Telegram failed: {e}")
+    return sent
+
+
 def notify_appointment_found(dates: list) -> list[str]:
     """
     Send alerts via all configured channels.

@@ -61,6 +61,13 @@ def main() -> None:
     log.info("KVR checker started — polling every %d seconds", interval)
     log.info("Booking URL: %s", checker.BOOKING_URL)
 
+    # Send startup notification so you know it's live
+    sent = notifier.notify_startup(interval)
+    if sent:
+        log.info("Startup notification sent via: %s", ", ".join(sent))
+    else:
+        log.warning("Startup notification could not be sent — check your credentials.")
+
     while True:
         try:
             log.info("Fetching ALTCHA challenge...")
