@@ -1,0 +1,6 @@
+services:
+  kvr-checker:
+    build: .
+    restart: always     # auto-restarts on crash and on server reboot
+    env_file:
+      - .env            # credentials live here on the host, never in the image
